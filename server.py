@@ -1,4 +1,3 @@
-
 import socket
 import threading
 import time
@@ -27,13 +26,17 @@ def handle_client(client_socket, client_address, role):
                 for client in clients:
                     client.send(message.encode())
             else:        
-             for client in clients:
-                if client != client_socket:
-                    client.send(message.encode())
-                
-            
+                for client in clients:
+                    if client != client_socket:
+                        client.send(message.encode())
         except:
             break
+    
+    # Notify the other client to restart the game
+    for client in clients:
+        if client != client_socket:
+            client.send("RESTART".encode())
+    
     client_socket.close()
     clients.remove(client_socket)
 
@@ -43,14 +46,15 @@ def start_server():
     server_socket.listen(2)
     print(f"Server listening on {HOST}:{PORT}")
     
-    for i in range(2):
-        client_socket, client_address = server_socket.accept()
-        print(f"Connection from {client_address}, assigned role {roles[i]}")
-        clients.append(client_socket)
-        
-        client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address, roles[i]))
-        client_thread.start()
-    
+    while True:
+        if len(clients) < 2:
+            client_socket, client_address = server_socket.accept()
+            role = roles[len(clients)]
+            print(f"Connection from {client_address}, assigned role {role}")
+            clients.append(client_socket)
+            
+            client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address, role))
+            client_thread.start()
 
 if __name__ == "__main__":
     start_server()

@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter.font import Font
 
+
 HOST = '192.168.1.4'
 PORT = 12345
 
@@ -36,7 +37,8 @@ class CaroGame:
         self.chat_frame.pack(side=tk.LEFT, padx=10)
 
 
-
+        self.show_infor = tk.Label(self.chat_frame, font=Font(family="Permanent Marker", size=60))
+        self.show_infor.pack(padx=40)
         # Tạo nút Connect ở phía trên cùng
         self.connect_button = tk.Button(self.chat_frame, text="Connect", command=self.connect_to_server)
         self.connect_button.pack(pady=10)
@@ -87,7 +89,7 @@ class CaroGame:
 
         # Tạo nhãn trạng thái lượt
         self.turn_status_font = Font(family="Inter", size=12,weight="bold")
-        self.turn_status_label = tk.Label(self.board_frame,font=self.turn_status_font, text="Waiting for connect", fg="black")
+        self.turn_status_label = tk.Label(self.board_frame,font=self.turn_status_font, text="Waiting to connect", fg="black")
         self.turn_status_label.grid(row=board_size + 2, column=1, columnspan=board_size, pady=10)
          # Tạo nhãn đếm ngược thời gian
         self.timer_label = tk.Label(self.board_frame, text="Time left: 10", fg="red")
@@ -115,10 +117,13 @@ class CaroGame:
                 self.role = message  # Receive role from server
                 if self.role == 'X':
                     self.my_turn = True  # X always starts first
-                # self.update_turn_status()
-                messagebox.showinfo("Role Assigned", f"You are playing as {self.role}")
-          
 
+                # Thay đổi text phần giới thiêu trên khung chat
+                if self.role == 'X':
+                    self.show_infor.config(text="X", fg="#e83a3d")
+                else:
+                    self.show_infor.config(text="O", fg="#4349c5")
+                messagebox.showinfo("Role Assigned", f"You are playing as {self.role}")
 
     def make_move(self, row, col):
         if self.game_started and self.my_turn and not self.buttons[row][col]['text']:
@@ -133,7 +138,6 @@ class CaroGame:
                 self.send_move(row, col)
             self.my_turn = False
             self.update_turn_status()
-
 
     def send_win_message(self):
         if self.connection:
@@ -164,22 +168,24 @@ class CaroGame:
                 if message.startswith("MOVE"):
                     _, row, col = message.split(',')
                     row, col = int(row), int(col)
-                    opponent_role = 'O' if self.role == 'X' else 'X'  # Opponent's role
-
+                    opponent_role = 'O' if self.role == 'X' else 'X'  
+                    
                     # set color
                     color = 'blue' if opponent_role == 'O' else 'red'
-                    self.buttons[row][col].config(text=opponent_role, fg=color)  # Opponent's move
+                    self.buttons[row][col].config(text=opponent_role, fg=color) 
                     self.board[row][col] = opponent_role  # Update logic board
                     self.my_turn = True  # Switch turn
                     self.update_turn_status()
 
                 elif message.startswith("WIN"):
                     _, winner = message.split(',')
+                  
                     if winner == self.role:
                         messagebox.showinfo("Game Over", "You win!")
                     else:
                         messagebox.showinfo("Game Over", "You lose!")
                     self.reset_game()
+                    
 
                 elif message.startswith("CHAT"):
                     _, chat_message = message.split(',', 1)
@@ -193,6 +199,17 @@ class CaroGame:
                     else:
                         messagebox.showinfo("Game Over", "You Win!")
                     self.reset_game()
+                elif message == "RESTART":
+                    messagebox.showinfo("Game Over", "Opponent disconnected. Restarting game.")
+                    self.reset_game()
+                    self.connect_button.config(state=tk.NORMAL)
+                    self.show_infor.config(text="")
+                    self.game_started = False
+                    self.turn_status_label.config(text="Waiting to connect", fg="black")
+                    self.timer_label.config(text="Time left: 10")
+                    self.connection.close()
+                    self.connection = None
+                    break
             except:
                 break
 
@@ -247,6 +264,7 @@ class CaroGame:
             start_col -= 1
 
         return False
+
     def update_turn_status(self):
         if self.my_turn:
             self.turn_status_label.config(text="Your Turn", fg="green")
@@ -255,11 +273,13 @@ class CaroGame:
             self.turn_status_label.config(text="Wait Your Opponent...", fg="black")
             self.timer_label.config(text="Time left: 10")
             self.stop_timer()
+
     def reset_game(self):
         for row in range(self.board_size):
             for col in range(self.board_size):
                 self.buttons[row][col].config(text='', bg='#FFFFFF')
                 self.board[row][col] = ''
+  
 
     def on_enter(self, event):
         event.widget.config(bg='#FBE8A4')
@@ -288,10 +308,11 @@ class CaroGame:
 
     def time_out(self):
         self.connection.send(f"TIMEOUT,{self.role}".encode()) 
+
     def stop_timer(self):
         """Dừng luồng đếm giờ khi người chơi thực hiện hành động."""
-       
         self.my_turn = False  # Khi đã thực hiện nước đi thì kết thúc lượt của người chơi
+
 if __name__ == "__main__":
     root = tk.Tk()
     game = CaroGame(root, board_size=10)  # You can change the board size here
