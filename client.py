@@ -29,7 +29,7 @@ class CaroGame:
         for row in range(10):
             button_row = []
             for col in range(10):
-                button = tk.Button(self.board_frame, text='', width=4, height=2, font=self.font_style,bg='#FFFFFF',command=lambda r=row, c=col: self.make_move(r, c), relief=tk.RAISED, border=1,boderC)
+                button = tk.Button(self.board_frame, text='', width=4, height=2, font=self.font_style,bg='#FFFFFF',command=lambda r=row, c=col: self.make_move(r, c), relief=tk.RAISED, border=1)
                 button.grid(row=row, column=col)
                 button.bind("<Enter>", self.on_enter)
                 button.bind("<Leave>", self.on_leave)
