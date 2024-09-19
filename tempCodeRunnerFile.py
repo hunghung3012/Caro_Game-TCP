@@ -29,10 +29,8 @@ class CaroGame:
         for row in range(10):
             button_row = []
             for col in range(10):
-                button = tk.Button(self.board_frame, text='', width=4, height=2, font=self.font_style,bg='#FFFFFF',command=lambda r=row, c=col: self.make_move(r, c), relief=tk.RAISED, border=1,boderC)
+                button = tk.Button(self.board_frame, text='', width=4, height=2, font=self.font_style,command=lambda r=row, c=col: self.make_move(r, c), relief=tk.RAISED, border=1)
                 button.grid(row=row, column=col)
-                button.bind("<Enter>", self.on_enter)
-                button.bind("<Leave>", self.on_leave)
                 button_row.append(button)
             self.buttons.append(button_row)
 
@@ -203,11 +201,6 @@ class CaroGame:
             for col in range(10):
                 self.buttons[row][col].config(text='')
                 self.board[row][col] = ''
-    def on_enter(self, event):
-       event.widget.config(bg='#FBE8A4')
-
-    def on_leave(self, event):
-        event.widget.config(bg='#FFFFFF')
 
 if __name__ == "__main__":
     root = tk.Tk()

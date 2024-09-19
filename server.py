@@ -1,3 +1,4 @@
+
 import socket
 import threading
 
@@ -16,9 +17,16 @@ def handle_client(client_socket, client_address, role):
             if not message:
                 break
             # Relay move or chat message to the other client
-            for client in clients:
+            if message.startswith("WIN"):
+                for client in clients:
+                    print(f"Sending win message to {client.getpeername()}")
+                    client.send(message.encode())
+            else:        
+             for client in clients:
                 if client != client_socket:
                     client.send(message.encode())
+                
+            
         except:
             break
     client_socket.close()
