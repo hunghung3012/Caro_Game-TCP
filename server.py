@@ -1,6 +1,7 @@
 
 import socket
 import threading
+import time
 
 # Server configuration
 HOST = '192.168.1.4'
@@ -11,6 +12,11 @@ roles = ['X', 'O']
 
 def handle_client(client_socket, client_address, role):
     client_socket.send(role.encode())  # Send role (X or O) to the client
+    if len(clients) == 2:
+        time.sleep(1) 
+        for client in clients:
+            client.send("START".encode())
+    
     while True:
         try:
             message = client_socket.recv(1024).decode()
@@ -34,7 +40,7 @@ def handle_client(client_socket, client_address, role):
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
-    server_socket.listen(5)
+    server_socket.listen(2)
     print(f"Server listening on {HOST}:{PORT}")
     
     for i in range(2):
@@ -44,6 +50,7 @@ def start_server():
         
         client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address, roles[i]))
         client_thread.start()
+    
 
 if __name__ == "__main__":
     start_server()

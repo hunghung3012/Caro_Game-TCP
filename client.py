@@ -15,8 +15,10 @@ class CaroGame:
         self.connection = None
         self.my_turn = False
         self.role = None  # Role will be X or O
+        self.game_started = False
+
         self.color_label = "#737373"  # Role will be X or O
-        
+
         self.board_size = board_size  # Add board_size paramete
         
         self.time_left = 10  # Thời gian mỗi lượt là 10 giây
@@ -33,6 +35,8 @@ class CaroGame:
         self.chat_frame = tk.Frame(self.main_frame)
         self.chat_frame.pack(side=tk.LEFT, padx=10)
 
+
+
         # Tạo nút Connect ở phía trên cùng
         self.connect_button = tk.Button(self.chat_frame, text="Connect", command=self.connect_to_server)
         self.connect_button.pack(pady=10)
@@ -48,7 +52,7 @@ class CaroGame:
         self.message_entry = tk.Entry(self.chat_frame, width=30)
         self.message_entry.pack(pady=5)
 
-        self.send_button = tk.Button(self.chat_frame, text="Send Message", command=self.send_message)
+        self.send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
         self.send_button.pack(pady=5)
 
         # Tạo frame chứa bàn cờ
@@ -99,15 +103,25 @@ class CaroGame:
             messagebox.showerror("Connection Failed", "Unable to connect to the server.")
 
     def receive_role(self):
-        self.role = self.connection.recv(1024).decode()  # Receive role from server
-        if self.role == 'X':
-            self.my_turn = True  # X always starts first
-        self.update_turn_status()
-        messagebox.showinfo("Role Assigned", f"You are playing as {self.role}")
-        threading.Thread(target=self.receive_message, daemon=True).start()
+        while True:
+            message = self.connection.recv(1024).decode()
+            if message == "START":
+                self.game_started = True
+                print("Game started")
+                self.update_turn_status()
+                threading.Thread(target=self.receive_message, daemon=True).start()
+                break
+            else:
+                self.role = message  # Receive role from server
+                if self.role == 'X':
+                    self.my_turn = True  # X always starts first
+                # self.update_turn_status()
+                messagebox.showinfo("Role Assigned", f"You are playing as {self.role}")
+          
+
 
     def make_move(self, row, col):
-        if self.my_turn and not self.buttons[row][col]['text']:
+        if self.game_started and self.my_turn and not self.buttons[row][col]['text']:
             color = 'red' if self.role == 'X' else 'blue'
             self.buttons[row][col].config(text=self.role, fg=color)
             self.board[row][col] = self.role  # Update logic board
@@ -119,7 +133,6 @@ class CaroGame:
                 self.send_move(row, col)
             self.my_turn = False
             self.update_turn_status()
-            self.stop_timer()
 
 
     def send_win_message(self):
@@ -176,9 +189,9 @@ class CaroGame:
                 elif message.startswith("TIMEOUT"):
                     _, winner = message.split(',')
                     if winner == self.role:
-                        messagebox.showinfo("Game Over", "You win!")
+                        messagebox.showinfo("Game Over", "You Lose!")
                     else:
-                        messagebox.showinfo("Game Over", "You lose!")
+                        messagebox.showinfo("Game Over", "You Win!")
                     self.reset_game()
             except:
                 break
@@ -240,6 +253,7 @@ class CaroGame:
             self.start_timer()
         else:
             self.turn_status_label.config(text="Wait Your Opponent...", fg="black")
+            self.timer_label.config(text="Time left: 10")
             self.stop_timer()
     def reset_game(self):
         for row in range(self.board_size):
@@ -276,6 +290,7 @@ class CaroGame:
         self.connection.send(f"TIMEOUT,{self.role}".encode()) 
     def stop_timer(self):
         """Dừng luồng đếm giờ khi người chơi thực hiện hành động."""
+       
         self.my_turn = False  # Khi đã thực hiện nước đi thì kết thúc lượt của người chơi
 if __name__ == "__main__":
     root = tk.Tk()
