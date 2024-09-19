@@ -17,9 +17,8 @@ def handle_client(client_socket, client_address, role):
             if not message:
                 break
             # Relay move or chat message to the other client
-            if message.startswith("WIN"):
+            if message.startswith("WIN") or message.startswith("TIMEOUT"):
                 for client in clients:
-                    print(f"Sending win message to {client.getpeername()}")
                     client.send(message.encode())
             else:        
              for client in clients:

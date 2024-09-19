@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.font import Font
@@ -15,8 +16,11 @@ class CaroGame:
         self.my_turn = False
         self.role = None  # Role will be X or O
         self.color_label = "#737373"  # Role will be X or O
-
-        self.board_size = board_size  # Add board_size parameter
+        
+        self.board_size = board_size  # Add board_size paramete
+        
+        self.time_left = 10  # Thời gian mỗi lượt là 10 giây
+        self.timer_thread = None  # Luồng đếm thời gianr
 
         self.font_style = Font(family="Permanent Marker", weight="bold")
         self.label_font = Font(family="Permanent Marker", size=10)  # Font for labels
@@ -81,7 +85,9 @@ class CaroGame:
         self.turn_status_font = Font(family="Inter", size=12,weight="bold")
         self.turn_status_label = tk.Label(self.board_frame,font=self.turn_status_font, text="Waiting for connect", fg="black")
         self.turn_status_label.grid(row=board_size + 2, column=1, columnspan=board_size, pady=10)
-
+         # Tạo nhãn đếm ngược thời gian
+        self.timer_label = tk.Label(self.board_frame, text="Time left: 10", fg="red")
+        self.timer_label.grid(row=board_size + 3, column=1, columnspan=board_size, pady=5)
 
     def connect_to_server(self):
         try:
@@ -113,6 +119,8 @@ class CaroGame:
                 self.send_move(row, col)
             self.my_turn = False
             self.update_turn_status()
+            self.stop_timer()
+
 
     def send_win_message(self):
         if self.connection:
@@ -165,6 +173,13 @@ class CaroGame:
                     self.chat_log.config(state=tk.NORMAL)
                     self.chat_log.insert(tk.END, f"Opponent: {chat_message}\n")
                     self.chat_log.config(state=tk.DISABLED)
+                elif message.startswith("TIMEOUT"):
+                    _, winner = message.split(',')
+                    if winner == self.role:
+                        messagebox.showinfo("Game Over", "You win!")
+                    else:
+                        messagebox.showinfo("Game Over", "You lose!")
+                    self.reset_game()
             except:
                 break
 
@@ -222,8 +237,10 @@ class CaroGame:
     def update_turn_status(self):
         if self.my_turn:
             self.turn_status_label.config(text="Your Turn", fg="green")
+            self.start_timer()
         else:
             self.turn_status_label.config(text="Wait Your Opponent...", fg="black")
+            self.stop_timer()
     def reset_game(self):
         for row in range(self.board_size):
             for col in range(self.board_size):
@@ -236,6 +253,30 @@ class CaroGame:
     def on_leave(self, event):
         event.widget.config(bg='#FFFFFF')
 
+    def start_timer(self):
+        """Bắt đầu luồng đếm thời gian khi đến lượt người chơi."""
+        if self.timer_thread and self.timer_thread.is_alive():
+            return  # Nếu luồng đếm giờ đang chạy, không bắt đầu lại
+        self.time_left = 10  # Reset thời gian về 10 giây
+        self.timer_thread = threading.Thread(target=self.update_timer)
+        self.timer_thread.start()
+
+    def update_timer(self):
+        """Chạy đếm ngược thời gian trong luồng riêng."""
+        while self.time_left > 0 and self.my_turn:
+            self.timer_label.config(text=f"Time left: {self.time_left}")
+            time.sleep(1)  # Dừng 1 giây mỗi lần
+            self.time_left -= 1
+
+        if self.time_left == 0 and self.my_turn:
+            self.timer_label.config(text="Time's up!")
+            self.time_out()
+
+    def time_out(self):
+        self.connection.send(f"TIMEOUT,{self.role}".encode()) 
+    def stop_timer(self):
+        """Dừng luồng đếm giờ khi người chơi thực hiện hành động."""
+        self.my_turn = False  # Khi đã thực hiện nước đi thì kết thúc lượt của người chơi
 if __name__ == "__main__":
     root = tk.Tk()
     game = CaroGame(root, board_size=10)  # You can change the board size here
